@@ -1,0 +1,75 @@
+services:
+
+ wireguard-warp:
+    image: linuxserver/wireguard
+    container_name: wireguard-warp
+    profiles: ["warp"]
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=America/Los_Angeles
+    ports:
+      - 51821:51820/udp
+    volumes:
+      - ./warp-config:/config
+      - /lib/modules:/lib/modules
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+ wireguard-server:
+    image: linuxserver/wireguard
+    container_name: wireguard-server
+    profiles: ["warp"]
+    depends_on:
+      - wireguard-warp
+    network_mode: service:wireguard-warp
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=0            # Your user ID
+      - PGID=0            # Your group ID
+      - TZ=America/Los_Angeles
+      - SERVERURL=<SERVER_IP>  # or your public IP
+      - SERVERPORT=51821     # Default WG port
+      - PEERS=2              # Number of clients to generate
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0  # Optional
+    volumes:
+      - ./server-config:/config
+      - /lib/modules:/lib/modules
+    #ports is irrelevant here since the neworking namespace is share with the 'wireguard-warp'
+    #ports:
+    # - 51821:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
+
+ wireguard-server-standalone:
+    image: linuxserver/wireguard
+    container_name: wireguard-server-standalone
+    profiles: ["standalone"]
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    environment:
+      - PUID=0            # Your user ID
+      - PGID=0            # Your group ID
+      - TZ=America/Los_Angeles
+      - SERVERURL=<SERVER_URL>  # or your public IP
+      - SERVERPORT=51821     # Default WG port
+      - PEERS=2              # Number of clients to generate
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0  # Optional
+    volumes:
+      - ./server-config:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51821:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
